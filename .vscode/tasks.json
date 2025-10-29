@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install deps (venv)",
+      "type": "shell",
+      "command": "/Users/gregorykeeton/.venv/bin/python3 -m pip install -r requirements.txt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run pipeline",
+      "type": "shell",
+      "command": "/Users/gregorykeeton/.venv/bin/python3 run_pipeline.py --seasons 2018-2024 --out_dir ./data --use_venv /Users/gregorykeeton/.venv/bin/python3",
+      "problemMatcher": []
+    }
+  ]
+}

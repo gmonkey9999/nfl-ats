@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Pipeline (venv)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/run_pipeline.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--seasons", "2018-2024",
+        "--out_dir", "${workspaceFolder}/data",
+        "--use_venv", "/Users/gregorykeeton/.venv/bin/python3"
+      ],
+      "justMyCode": true,
+      "env": { "PYTHONUNBUFFERED": "1" }
+    },
+    {
+      "name": "Build ATS only",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/build_nfl_ats_dataset.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--seasons", "2018-2024",
+        "--out_csv", "${workspaceFolder}/data/nfl_ats_model_dataset.csv"
+      ],
+      "justMyCode": true
+    },
+    {
+      "name": "Add Player Features only",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/add_player_features.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--in_csv", "${workspaceFolder}/data/nfl_ats_model_dataset.csv",
+        "--out_csv", "${workspaceFolder}/data/nfl_ats_model_dataset_with_players.csv",
+        "--rolls", "3,5",
+        "--min_dropbacks", "10"
+      ],
+      "justMyCode": true
+    }
+  ]
+}

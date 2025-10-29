@@ -1,0 +1,15 @@
+season,week,game_id,home_team,away_team,home_spread_close,over_under_line,home_favorite,home_qb_epa_per_play,away_qb_epa_per_play,home_comp_pct,away_comp_pct,home_int_rate,away_int_rate,home_sack_rate,away_sack_rate,home_ypa,away_ypa,home_TEAM_qb_epa_per_play_L3,away_TEAM_qb_epa_per_play_L3,home_TEAM_success_rate_L3,away_TEAM_success_rate_L3,home_rest_days,away_rest_days,home_after_bye_probable,away_after_bye_probable,home_travel_miles,away_travel_miles,weather_temp_f,weather_wind_mph,stadium_roof_effective,stadium_surface
+2025,9,2025_09_BUF_KC,BUF,KC,1.5,51.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,GRASS
+2025,9,2025_09_CIN_CHI,CIN,CHI,2.5,52.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,TURF
+2025,9,2025_09_DAL_ARI,DAL,ARI,-2.5,54.5,1,,,,,,,,,,,,,,,,,,,,,,,RETRACTABLE,TURF
+2025,9,2025_09_DET_MIN,DET,MIN,-8.5,47.5,1,,,,,,,,,,,,,,,,,,,,,,,DOME,TURF
+2025,9,2025_09_GB_CAR,GB,CAR,-12.5,44.5,1,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,GRASS
+2025,9,2025_09_HOU_DEN,HOU,DEN,-1.5,39.5,1,,,,,,,,,,,,,,,,,,,,,,,RETRACTABLE,TURF
+2025,9,2025_09_LAR_NO,LAR,NO,-13.5,44.5,1,,,,,,,,,,,,,,,,,,,,,,,RETRACTABLE,TURF
+2025,9,2025_09_LV_JAX,LV,JAX,3.5,44.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,TURF
+2025,9,2025_09_MIA_BAL,MIA,BAL,7.5,49.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,GRASS
+2025,9,2025_09_NE_ATL,NE,ATL,-5.5,45.5,1,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,TURF
+2025,9,2025_09_NY_SF,NY,SF,2.5,48.5,0,,,,,,,,,,,,,,,,,,,,,,, OUTDOOR,TURF
+2025,9,2025_09_PIT_IND,PIT,IND,3.5,50.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,TURF
+2025,9,2025_09_TEN_LA,TEN,LA,10.5,43.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,TURF
+2025,9,2025_09_WSH_SEA,WSH,SEA,3.5,46.5,0,,,,,,,,,,,,,,,,,,,,,,,OUTDOOR,GRASS

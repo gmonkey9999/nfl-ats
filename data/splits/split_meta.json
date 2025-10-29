@@ -1,0 +1,63 @@
+{
+  "counts": {
+    "test_rows": 272,
+    "total_rows": 2214,
+    "train_rows": 1942
+  },
+  "created_at": "2025-10-28T19:12:52.994920Z",
+  "environment": {
+    "pandas": "1.5.3",
+    "platform": "macOS-10.16-x86_64-i386-64bit",
+    "python": "3.9.12 (main, Apr  5 2022, 01:53:17)  [Clang 12.0.0 ]"
+  },
+  "input_checksum_sha256": "77c3ffed84d8dc74032a86c8b92a02abdb377f6998fbfe4a161c9a9f090f5672",
+  "input_csv": "/Users/gregorykeeton/nfl-ats/data/nfl_ats_model_dataset_with_players.csv",
+  "mode": "temporal",
+  "params": {
+    "seed": 42,
+    "test_frac": null,
+    "test_seasons": null
+  },
+  "train_by_season": [
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2018.csv",
+      "rows": 267,
+      "season": 2018
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2019.csv",
+      "rows": 267,
+      "season": 2019
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2020.csv",
+      "rows": 269,
+      "season": 2020
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2021.csv",
+      "rows": 285,
+      "season": 2021
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2022.csv",
+      "rows": 284,
+      "season": 2022
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2023.csv",
+      "rows": 285,
+      "season": 2023
+    },
+    {
+      "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season/train_2024.csv",
+      "rows": 285,
+      "season": 2024
+    }
+  ],
+  "train_by_season_archive": {
+    "path": "/Users/gregorykeeton/nfl-ats/data/splits/train_by_season.tar.gz",
+    "sha256": "fcd5e63ec3a3f24657359ea88a40f0d61850a42375ff47822ec099b32995f1ca",
+    "size_bytes": 988832
+  }
+}

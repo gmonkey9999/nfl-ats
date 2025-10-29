@@ -1,0 +1,46 @@
+{
+  "accuracy": 0.9438596491228071,
+  "log_loss": 0.24387636529674797,
+  "confusion_matrix": [
+    [
+      130,
+      0,
+      5
+    ],
+    [
+      3,
+      0,
+      1
+    ],
+    [
+      5,
+      2,
+      139
+    ]
+  ],
+  "train_rows": 500,
+  "test_rows": 285,
+  "train_seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "test_seasons": [
+    2024
+  ],
+  "n_num_features": 147,
+  "n_cat_features": 3
+}
+
+              precision    recall  f1-score   support
+
+  away_cover     0.9420    0.9630    0.9524       135
+        push     0.0000    0.0000    0.0000         4
+  home_cover     0.9586    0.9521    0.9553       146
+
+    accuracy                         0.9439       285
+   macro avg     0.6335    0.6383    0.6359       285
+weighted avg     0.9373    0.9439    0.9405       285

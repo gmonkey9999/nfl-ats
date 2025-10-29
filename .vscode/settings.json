@@ -1,0 +1,19 @@
+{
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        ".",
+        "-p",
+        "*test.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true,
+    // Use the project's virtual environment as the default interpreter for this workspace
+    "python.defaultInterpreterPath": "/Users/gregorykeeton/.venv/bin/python3",
+    // Help the language server find local packages and modules
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    // Path to venv (some extensions look for this)
+    "python.venvPath": "/Users/gregorykeeton/.venv"
+}
