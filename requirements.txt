@@ -1,3 +1,4 @@
+pytest
 nfl_data_py==0.3.3
 pandas>=1.5,<2.0
 numpy>=1.21,<2.0
