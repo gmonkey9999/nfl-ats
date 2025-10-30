@@ -1,0 +1,80 @@
+name: Weekly predictions
+
+on:
+  schedule:
+    # Runs Thursdays at 12:30 UTC
+    - cron: '30 12 * * 4'
+  workflow_dispatch: {}
+
+jobs:
+  run-weekly-preds:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Make run script executable
+        run: chmod +x run_weekly_preds.sh
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh || true
+
+      - name: Authenticate gh and download latest release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not available; skipping release download"
+            exit 0
+          fi
+          echo "Authenticating gh..."
+          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          echo "Attempting to download latest release assets into models/cover_multiclass/"
+          mkdir -p models/cover_multiclass
+          gh release download --repo "${{ github.repository }}" --dir models/cover_multiclass --latest --clobber || echo "No release assets downloaded"
+
+      - name: Check model artifacts exist
+        run: |
+          set -euo pipefail
+          MODEL_FILE=models/cover_multiclass/xgb_model.json
+          if [ -f "${MODEL_FILE}" ]; then
+            echo "Found model artifact: ${MODEL_FILE}"
+          else
+            echo "ERROR: model artifact not found at ${MODEL_FILE}. To reduce CI runtime we no longer train in CI; please provide the model artifacts in the repository or upload them as a release/artifact."
+            exit 1
+          fi
+
+      - name: Run weekly predictions
+        run: |
+          set -euo pipefail
+          ./run_weekly_preds.sh
+
+      - name: Validate produced predictions
+        run: |
+          set -euo pipefail
+          mkdir -p validation
+          # validate any predictions_*.csv files produced under data/autogen
+          shopt -s nullglob
+          for f in data/autogen/predictions_*.csv; do
+            echo "Validating $f"
+            python validate_dataset.py --csv "$f" || echo "Validation failed for $f";
+          done
+
+      - name: Upload predictions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-predictions
+          path: data/autogen/predictions_*.csv

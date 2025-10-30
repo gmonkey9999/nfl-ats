@@ -310,19 +310,100 @@ def main(argv: List[str] | None = None) -> int:
     # Team-level merges
     if 'home_team' in out.columns:
         team_h = team_roll.rename(columns={'team': 'home_team'})
+        # Prefix TEAM_ rolling columns with 'home_' so resulting column names
+        # are canonical (e.g. home_TEAM_qb_epa_per_play_L3)
+        team_h = team_h.rename(columns={c: f'home_{c}' for c in team_h.columns if c.startswith('TEAM_')})
         out = out.merge(team_h, on=['game_id', 'home_team', 'season'], how='left')
     if 'away_team' in out.columns:
         team_a = team_roll.rename(columns={'team': 'away_team'})
+        team_a = team_a.rename(columns={c: f'away_{c}' for c in team_a.columns if c.startswith('TEAM_')})
         out = out.merge(team_a, on=['game_id', 'away_team', 'season'], how='left')
 
     # QB-level merges (primary QB for team/game)
     if 'home_team' in out.columns:
         qb_h = qb_roll.rename(columns={'team': 'home_team', 'passer_id': 'home_passer_id', 'passer': 'home_passer'})
-        out = out.merge(qb_h, on=['game_id', 'home_team', 'season'], how='left', suffixes=('', '_QB_HOME'))
+        # Rename primary-QB per-game columns to canonical home_* names to avoid
+        # suffix collisions (e.g. home_qb_epa_per_play)
+        rename_map_h = {}
+        if 'qb_epa_per_play' in qb_h.columns:
+            rename_map_h['qb_epa_per_play'] = 'home_qb_epa_per_play'
+        if 'success_rate' in qb_h.columns:
+            rename_map_h['success_rate'] = 'home_qb_success_rate'
+        # Also prefix any QB_ rolling columns with home_ (optional)
+        for c in qb_h.columns:
+            if c.startswith('QB_'):
+                rename_map_h[c] = f'home_{c}'
+        qb_h = qb_h.rename(columns=rename_map_h)
+        out = out.merge(qb_h, on=['game_id', 'home_team', 'season'], how='left')
     if 'away_team' in out.columns:
         qb_a = qb_roll.rename(columns={'team': 'away_team', 'passer_id': 'away_passer_id', 'passer': 'away_passer'})
-        out = out.merge(qb_a, on=['game_id', 'away_team', 'season'], how='left', suffixes=('', '_QB_AWAY'))
+        rename_map_a = {}
+        if 'qb_epa_per_play' in qb_a.columns:
+            rename_map_a['qb_epa_per_play'] = 'away_qb_epa_per_play'
+        if 'success_rate' in qb_a.columns:
+            rename_map_a['success_rate'] = 'away_qb_success_rate'
+        for c in qb_a.columns:
+            if c.startswith('QB_'):
+                rename_map_a[c] = f'away_{c}'
+        qb_a = qb_a.rename(columns=rename_map_a)
+        out = out.merge(qb_a, on=['game_id', 'away_team', 'season'], how='left')
 
+    # Clean up legacy duplicate-suffix columns before writing so downstream
+    # consumers see canonical column names only (coalesce *_x/_y and .1 variants).
+    def _coalesce_and_clean(df):
+        import re
+        cols = df.columns.tolist()
+        bases = set()
+        # compute canonical base by stripping known suffixes
+        for c in cols:
+            base = re.sub(r'(_x|_y|\.1)$', '', c)
+            bases.add(base)
+
+        for base in bases:
+            # candidate variants in preferred order
+            candidates = [
+                base,
+                f"{base}_x",
+                f"{base}_y",
+                f"{base}_x.1",
+                f"{base}_y.1",
+                f"{base}.1",
+            ]
+            present = [c for c in candidates if c in df.columns]
+            if not present:
+                continue
+            # coalesce present columns into a single Series using bfill across
+            # columns (preferred) which handles DataFrame/Series uniformly.
+            try:
+                tmp = df[present].bfill(axis=1).iloc[:, 0]
+            except Exception:
+                # fallback: iterate safely
+                s = df[present[0]]
+                for c in present[1:]:
+                    series_c = df[c]
+                    if hasattr(series_c, 'ndim') and getattr(series_c, 'ndim') == 2:
+                        try:
+                            series_c = series_c.bfill(axis=1).iloc[:, 0]
+                        except Exception:
+                            series_c = series_c.iloc[:, 0]
+                    s = s.fillna(series_c)
+                tmp = s
+            df[base] = tmp
+            # drop helper cols (all present variants except the canonical base)
+            for c in present:
+                if c != base and c in df.columns:
+                    try:
+                        df = df.drop(columns=[c])
+                    except Exception:
+                        pass
+
+        # drop any remaining columns that match pattern '*.1'
+        rem = [c for c in df.columns if c.endswith('.1')]
+        if rem:
+            df = df.drop(columns=rem)
+        return df
+
+    out = _coalesce_and_clean(out)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(out_csv, index=False)
     logging.info('Wrote enriched ATS CSV to %s (%d rows)', out_csv, len(out))

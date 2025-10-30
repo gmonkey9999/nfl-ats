@@ -1,14 +1,14 @@
 {
-  "accuracy": 0.9917355371900827,
-  "log_loss": 0.1339837015885529,
+  "accuracy": 1.0,
+  "log_loss": 0.015143473292460453,
   "confusion_matrix": [
     [
       57,
       0
     ],
     [
-      1,
-      63
+      0,
+      64
     ]
   ],
   "train_rows": 1942,
@@ -25,15 +25,15 @@
   "test_seasons": [
     2025
   ],
-  "n_num_features": 147,
+  "n_num_features": 55,
   "n_cat_features": 3
 }
 
               precision    recall  f1-score   support
 
-  away_cover     0.9828    1.0000    0.9913        57
-  home_cover     1.0000    0.9844    0.9921        64
+  away_cover     1.0000    1.0000    1.0000        57
+  home_cover     1.0000    1.0000    1.0000        64
 
-    accuracy                         0.9917       121
-   macro avg     0.9914    0.9922    0.9917       121
-weighted avg     0.9919    0.9917    0.9917       121
+    accuracy                         1.0000       121
+   macro avg     1.0000    1.0000    1.0000       121
+weighted avg     1.0000    1.0000    1.0000       121

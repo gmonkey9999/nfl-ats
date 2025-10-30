@@ -122,6 +122,8 @@ def main():
     ap.add_argument('--feature_order', default=None, help='Path to feature_order.json (optional)')
     ap.add_argument('--preproc_meta', default=None, help='Path to preproc_meta.json (optional)')
     ap.add_argument('--out_csv', default='predictions.csv', help='Output CSV path')
+    ap.add_argument('--py', '--python', dest='py', type=str, default=None,
+                    help='Compatibility: accepted but not used when invoked directly')
     args = ap.parse_args()
 
     model_path = Path(args.model)

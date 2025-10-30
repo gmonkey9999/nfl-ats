@@ -30,6 +30,8 @@ python train_xgb_cover.py \
 """
 from __future__ import annotations
 import argparse
+import os
+import sys
 import json
 import logging
 from pathlib import Path
@@ -162,10 +164,26 @@ def main():
     ap.add_argument("--test_seasons", type=str, default=None, help="e.g. 2024 or 2023-2024")
     ap.add_argument("--auto_split", action="store_true", help="Train on all but max season; test on max season")
     ap.add_argument("--seed", type=int, default=1337)
+    ap.add_argument("--py", "--python", dest="py", type=str, default=None,
+                    help="Path to python interpreter to run under (re-exec). If not set, uses current interpreter.")
     ap.add_argument("--fast", action="store_true", help="Fast mode: reduce estimator count and optionally subsample rows")
     ap.add_argument("--fast-estimators", type=int, default=50, help="Number of estimators to use in fast mode (default: 50)")
     ap.add_argument("--max-rows", type=int, default=None, help="If set, subsample the training set to at most this many rows (fast debug)")
     args = ap.parse_args()
+
+    # If the user requested a specific python interpreter and it's different
+    # from the current one, re-exec the script under that interpreter so all
+    # imports (e.g. xgboost) resolve from the requested environment.
+    if args.py:
+        desired = os.path.expanduser(args.py)
+        try:
+            desired_path = str(Path(desired))
+        except Exception:
+            desired_path = desired
+        if os.path.abspath(sys.executable) != os.path.abspath(desired_path):
+            # Avoid infinite loop: remove --py when re-execing since we're already honoring it.
+            new_argv = [desired_path] + [a for a in sys.argv[1:]]
+            os.execv(desired_path, [desired_path] + sys.argv[1:])
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,6 @@
+game_id,xgb_pred,xgb_confidence
+2018_01_ATL_PHI,home_cover,0.62
+2018_01_BUF_BAL,away_cover,0.71
+2018_01_PIT_CLE,home_cover,0.55
+2018_01_CIN_IND,home_cover,0.60
+2018_01_TEN_MIA,away_cover,0.68

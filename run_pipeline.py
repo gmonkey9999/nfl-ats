@@ -43,8 +43,15 @@ TRAIN = THIS_DIR / 'train_xgb_cover.py'
 
 
 def which_python(py_hint: str | None) -> str:
+    # If an explicit hint is provided, use it.
     if py_hint:
         return py_hint
+    # If a conda env is active, prefer its python executable.
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if conda_prefix:
+        candidate = os.path.join(conda_prefix, "bin", "python")
+        if Path(candidate).exists():
+            return candidate
     # Fallback to current interpreter
     return sys.executable
 
@@ -74,6 +81,7 @@ def main():
     # Outputs & interpreter
     ap.add_argument('--out_dir', type=str, default='data', help='Output directory (default: ./data, relative to current working directory)')
     ap.add_argument('--use_venv', type=str, default=None, help='Path to python interpreter (e.g. /Users/you/.venv/bin/python3). If not provided, uses the current interpreter.')
+    ap.add_argument('--py', '--python', dest='py', type=str, default=None, help='Alias for --use_venv; path to python interpreter to use for running scripts')
     # Optional model training
     ap.add_argument('--train_model', action='store_true', help='If set, run the training script `train_xgb_cover.py` after dataset creation')
     ap.add_argument('--model_out_dir', type=str, default='models/cover_multiclass', help='Output dir for trained model when --train_model is set')
@@ -83,7 +91,9 @@ def main():
 
     args = ap.parse_args()
 
-    py = which_python(args.use_venv)
+    # Prefer explicit --py over --use_venv. which_python will prefer conda when available.
+    py_hint = args.py or args.use_venv
+    py = which_python(py_hint)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -105,6 +115,21 @@ def main():
             logging.error('Check file permissions for %s', script_path)
             sys.exit(1)
 
+
+    # --- Step 0: fetch raw data ---
+    FETCH = THIS_DIR / 'fetch_free_nfl_data.py'
+    if FETCH.exists() and FETCH.is_file():
+        fetch_cmd = [py, str(FETCH), '--outdir', 'data/raw', '--pbp-format', 'parquet', '--skip-existing']
+        if args.seasons:
+            fetch_cmd += ['--seasons', args.seasons]
+        logging.info('Step 0: Fetching raw NFL data')
+        rc = run(fetch_cmd)
+        if rc:
+            logging.error('Step 0 (fetch) failed with return code %s, aborting.', rc)
+            sys.exit(rc)
+    else:
+        logging.warning('fetch_free_nfl_data.py not found; skipping raw data fetch step.')
+
     # --- Step 1: build base dataset ---
     cmd1 = [py, str(BUILD), '--out_csv', str(ats_csv)]
     if args.seasons:
@@ -120,14 +145,100 @@ def main():
         if not rolls_list or any(r <= 0 for r in rolls_list):
             raise ValueError
     except Exception:
-        logging.error("Invalid format for --rolls. Must be comma-separated positive integers, e.g. '3,5'")
-        sys.exit(1)
+        # --- Step 1.8: add rest, travel, and scheduling features ---
+            CONTEXT_SCRIPT = THIS_DIR / 'add_context_features.py'
+            context_csv = out_dir / 'nfl_ats_model_dataset_context.csv'
+            stadiums_csv = THIS_DIR / 'data' / 'raw' / 'stadiums.csv'
+            if CONTEXT_SCRIPT.exists() and CONTEXT_SCRIPT.is_file() and stadiums_csv.exists():
+                context_cmd = [py, str(CONTEXT_SCRIPT), '--in_csv', str(ats_csv), '--out_csv', str(context_csv), '--stadiums_csv', str(stadiums_csv)]
+                logging.info('Step 1.8: Adding rest, travel, and scheduling features')
+                rc = run(context_cmd)
+                if rc:
+                    logging.error('Step 1.8 (context features) failed with return code %s, aborting.', rc)
+                    sys.exit(rc)
+                # Use context-enriched CSV for next steps
+                ats_csv = context_csv
+            else:
+                logging.warning('add_context_features.py or stadiums.csv not found; skipping context feature step.')
+            logging.error("Invalid format for --rolls. Must be comma-separated positive integers, e.g. '3,5'")
+            sys.exit(1)
 
     # Run step 1 and fail fast if it errors
     rc = run(cmd1)
     if rc:
         logging.error('Step 1 (build) failed with return code %s, aborting.', rc)
         sys.exit(rc)
+
+    # --- Step 1.5: add injury features and merge ---
+    import pandas as pd
+    ats_df = pd.read_csv(ats_csv)
+    week = int(ats_df['week'].max())
+    year = int(ats_df['season'].max())
+    injury_csv = out_dir / f'injury_features_W{week:02d}.csv'
+    INJURY_SCRIPT = THIS_DIR / 'add_injury_features.py'
+    if INJURY_SCRIPT.exists() and INJURY_SCRIPT.is_file():
+        injury_cmd = [py, str(INJURY_SCRIPT), str(week), str(year), str(injury_csv)]
+        logging.info('Step 1.5: Adding injury features for week %d, %d', week, year)
+        rc = run(injury_cmd)
+        if rc:
+            logging.error('Step 1.5 (injury features) failed with return code %s, aborting.', rc)
+            sys.exit(rc)
+        # --- Step 1.7: add weather and stadium features and merge ---
+        WEATHER_SCRIPT = THIS_DIR / 'add_weather_stadium_features.py'
+        stadiums_csv = THIS_DIR / 'data' / 'raw' / 'stadiums.csv'
+        weather_csv = out_dir / 'nfl_ats_model_dataset_weather.csv'
+        if WEATHER_SCRIPT.exists() and WEATHER_SCRIPT.is_file() and stadiums_csv.exists():
+            weather_cmd = [py, str(WEATHER_SCRIPT), str(ats_csv), str(stadiums_csv), str(weather_csv)]
+            logging.info('Step 1.7: Adding weather and stadium features')
+            rc = run(weather_cmd)
+            if rc:
+                logging.error('Step 1.7 (weather/stadium) failed with return code %s, aborting.', rc)
+                sys.exit(rc)
+            # Use weather-enriched CSV for next steps
+            ats_csv = weather_csv
+        else:
+            logging.warning('add_weather_stadium_features.py or stadiums.csv not found; skipping weather/stadium feature step.')
+        try:
+            injury_df = pd.read_csv(injury_csv)
+            # Merge on team, week, year for both home and away
+            ats_df = ats_df.merge(
+                injury_df.add_prefix('home_'),
+                left_on=['home_team', 'week', 'season'],
+                right_on=['home_team', 'home_week', 'home_year'],
+                how='left',
+            )
+            ats_df = ats_df.merge(
+                injury_df.add_prefix('away_'),
+                left_on=['away_team', 'week', 'season'],
+                right_on=['away_team', 'away_week', 'away_year'],
+                how='left',
+            )
+            # Drop merge keys from injury features
+            for col in ['home_team', 'home_week', 'home_year', 'away_team', 'away_week', 'away_year']:
+                if col in ats_df.columns:
+                    ats_df = ats_df.drop(columns=[col])
+            ats_df.to_csv(ats_csv, index=False)
+            logging.info('Merged injury features into ATS dataset.')
+        except Exception as e:
+            logging.error('Failed to merge injury features: %s', e)
+            sys.exit(1)
+    else:
+        logging.warning('add_injury_features.py not found; skipping injury feature step.')
+        # --- Step 1.6: add market consensus features and merge ---
+        CONSENSUS_SCRIPT = THIS_DIR / 'add_market_consensus_features.py'
+        odds_jsonl = THIS_DIR / 'data' / 'raw' / 'odds_history.jsonl'
+        consensus_csv = out_dir / 'nfl_ats_model_dataset_consensus.csv'
+        if CONSENSUS_SCRIPT.exists() and CONSENSUS_SCRIPT.is_file() and odds_jsonl.exists():
+            consensus_cmd = [py, str(CONSENSUS_SCRIPT), str(ats_csv), str(odds_jsonl), str(consensus_csv)]
+            logging.info('Step 1.6: Adding market consensus features')
+            rc = run(consensus_cmd)
+            if rc:
+                logging.error('Step 1.6 (market consensus) failed with return code %s, aborting.', rc)
+                sys.exit(rc)
+            # Use consensus-enriched CSV for next steps
+            ats_csv = consensus_csv
+        else:
+            logging.warning('add_market_consensus_features.py or odds_history.jsonl not found; skipping market consensus feature step.')
 
     cmd2 = [
         py, str(PLAYERS),
@@ -141,12 +252,38 @@ def main():
 
     run(cmd2)
 
+    # Add referee features
+    os.system(
+        f"python add_referee_features.py --ats_path ./data/nfl_ats_model_dataset.csv --ref_stats_path ./data/referee_stats_sample.csv --out_path ./data/nfl_ats_model_dataset_with_ref.csv"
+    )
+
+    # Add matchup trends features
+    os.system(
+        f"python add_matchup_trends_features.py --ats_path ./data/nfl_ats_model_dataset_with_ref.csv --trends_path ./data/matchup_trends_sample.csv --out_path ./data/nfl_ats_model_dataset_with_matchup.csv"
+    )
+
+    # Add ensemble/meta-features
+    os.system(
+        "python add_ensemble_meta_features.py --ats_path ./data/nfl_ats_model_dataset_with_matchup.csv "
+        "--xgb_pred_path ./data/xgb_predictions_sample.csv "
+        "--rf_pred_path ./data/rf_predictions_sample.csv "
+        "--lgbm_pred_path ./data/lgbm_predictions_sample.csv "
+        "--market_pred_path ./data/market_consensus_predictions_sample.csv "
+        "--out_path ./data/nfl_ats_model_dataset_with_ensemble.csv"
+    )
+
+    # Add news and sentiment features
+    os.system(
+        "python add_news_sentiment_features.py --ats_path ./data/nfl_ats_model_dataset_with_ensemble.csv --out_path ./data/nfl_ats_model_dataset_with_sentiment.csv"
+    )
+
     # Optional: run training
     if args.train_model:
         # sanity check train script
         if not (TRAIN.exists() and TRAIN.is_file()):
             logging.error('Training script not found: %s', TRAIN)
             logging.error('Place train_xgb_cover.py next to run_pipeline.py to enable --train_model')
+            logging.error('Or install the required packages in a virtual environment and run with --use_venv')
             sys.exit(1)
         if not os.access(TRAIN, os.R_OK):
             logging.error('Training script is not readable: %s', TRAIN)

@@ -1,0 +1,6 @@
+game_id,lgbm_pred,lgbm_confidence
+2018_01_ATL_PHI,home_cover,0.61
+2018_01_BUF_BAL,away_cover,0.69
+2018_01_PIT_CLE,home_cover,0.54
+2018_01_CIN_IND,home_cover,0.58
+2018_01_TEN_MIA,away_cover,0.66
