@@ -3,3 +3,26 @@
 
 # Ignore macOS system files
 .DS_Store
+
+# Python cache and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# Jupyter and notebook artifacts
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+
+# VS Code settings
+.vscode/
+
+# Windows system files
+Thumbs.db
