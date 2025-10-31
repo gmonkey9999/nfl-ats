@@ -1,2 +1,5 @@
 # Ignore raw data files and folders
 /data/raw/
+
+# Ignore macOS system files
+.DS_Store
